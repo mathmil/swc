@@ -419,7 +419,7 @@ int main()
 			CNFGPenY = 10;
 			CNFGPenX = 10;
 			for (int i=0;i<g.sizeSets;i++){
-				sprintf(debugText,"%hhu %hhu %hhu %hhu"
+				sprintf(debugText,"%2hhu %2hhu %2hhu %2hhu"
 						,g.sets[i][0],g.sets[i][1],g.sets[i][2],g.sets[i][3]);
 				CNFGDrawText(debugText,5);
 				CNFGPenY+=25;
@@ -427,14 +427,14 @@ int main()
 			CNFGPenY = 10;
 			CNFGPenX = 220;
 			for (int i=0;i<g.sizeCards;i+=3){
-				sprintf(debugText,"%hhu %hhu %hhu"
+				sprintf(debugText,"%2hhu %2hhu %2hhu"
 						,g.cards[i+0],g.cards[i+1],g.cards[i+2]);
 				CNFGDrawText(debugText,5);
 				CNFGPenY+=25;
 			}
 			CNFGPenY+=25;
 			for (int i=0;i<81;i+=3){
-				sprintf(debugText,"%hhu %hhu %hhu",g.deck[i],g.deck[i+1],g.deck[i+2]);
+				sprintf(debugText,"%2hhu %2hhu %2hhu",g.deck[i],g.deck[i+1],g.deck[i+2]);
 				if (i>(81-g.remainingCards)){
 					CNFGColor(RED);
 				}
@@ -454,7 +454,7 @@ int main()
 			CNFGPenY = 100;
 			CNFGPenX = 420;
 			for (int i=0;i<g.sizeSetsFound;i++){
-				sprintf(debugText,"%hhu %hhu %hhu %hhu"
+				sprintf(debugText,"%2hhu %2hhu %2hhu %2hhu"
 						,g.setsFound[i][0],g.setsFound[i][1],g.setsFound[i][2],g.setsFound[i][3]);
 				CNFGDrawText(debugText,5);
 				CNFGPenY+=25;
