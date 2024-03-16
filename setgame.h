@@ -198,6 +198,8 @@ void handleFound(struct Game *g, unsigned char set[4]){
 		(*g).cards[k]=(*g).cards[k+1];
 		}
 		(*g).sizeCards--;
+		(*g).remainingCards--;
+		break;
 		}
 		}
 	}

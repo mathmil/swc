@@ -431,15 +431,26 @@ int main()
 				CNFGDrawText(debugText,5);
 				CNFGPenY+=25;
 			}
+			CNFGPenY+=25;
+			for (int i=0;i<81;i+=3){
+				sprintf(debugText,"%hhu %hhu %hhu",g.deck[i],g.deck[i+1],g.deck[i+2]);
+				if (i>(81-g.remainingCards)){
+					CNFGColor(RED);
+				}
+				CNFGDrawText(debugText,5);
+				CNFGPenY+=25;
+			}
+			CNFGColor(0xffffffff);
 			CNFGPenY = 10;
 			CNFGPenX = 420;
 			sprintf(debugText,"%li",(long)startTime);
 			CNFGDrawText(debugText,5);
-			CNFGPenX = 620;
+			CNFGPenX = 420;
+			CNFGPenY = 35;
 			sprintf(debugText,"%i %i %i %i"
 					,selectedCards[0],selectedCards[1],selectedCards[2],selectedCards[3]);
 			CNFGDrawText(debugText,5);
-			CNFGPenY = 50;
+			CNFGPenY = 100;
 			CNFGPenX = 420;
 			for (int i=0;i<g.sizeSetsFound;i++){
 				sprintf(debugText,"%hhu %hhu %hhu %hhu"
@@ -453,7 +464,7 @@ int main()
 		CNFGPenX = 10;
 		CNFGColor(UNSELECTED_COLOR);
 		for (int i=0; i<5; i++){
-		if (i-2 == mode){
+		if (i-2 == g.mode){
 			CNFGColor(SELECTED_COLOR);
 			CNFGTackRectangle(screenx*0.2*i+5, screeny-60, screenx*0.2*(i+1)-5, screeny-5);
 			CNFGColor(UNSELECTED_COLOR);
