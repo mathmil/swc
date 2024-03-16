@@ -341,7 +341,7 @@ void drawCard(short xPos, short yPos, unsigned char c){
 void drawCards(){
 	for (int i=0; i<g.sizeCards; i++){
 		if ((mode == 1 && i<3 && g.sizeSetsFound>0 ) || finishTime > 0)
-			CNFGColor(0x111111ff);
+			CNFGColor(0x181818ff);
 		else
 			CNFGColor(UNSELECTED_COLOR);
 		for (int j=0; j<4;j++){

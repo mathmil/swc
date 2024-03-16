@@ -181,7 +181,7 @@ void handleFound(struct Game *g, unsigned char set[4]){
 	}
 	for (int j=0;j<cardsPerSet;j++){//für alle karten im set
 	if ((*g).remainingCards>0 && (*g).sizeCards <= defaultSizeCards){//karten ersetzen
-		for(int i=(*g).mode==1?3:0;i<(*g).sizeCards;i++){
+		for(int i=(*g).mode!=1?0:3;i<(*g).sizeCards;i++){
 		if ((*g).cards[i]==set[j]){
 		(*g).boolCards[set[j]]=false;
 		(*g).cards[i]=(*g).deck[81-(*g).remainingCards];
@@ -191,7 +191,7 @@ void handleFound(struct Game *g, unsigned char set[4]){
 		}
 		}
 	} else  { //karten nur entfernen & aufrutschen, nicht ersetzen
-		for(int i=0;i<(*g).sizeCards;i++){//karte finden
+		for(int i=(*g).mode!=1?0:3;i<(*g).sizeCards;i++){//karte finden
 		if ((*g).cards[i]==set[j]){
 		(*g).boolCards[(*g).cards[i]]=false;
 		for(int k=i;k<(*g).sizeCards-1;k++){//karten rutschen
@@ -211,9 +211,8 @@ void handleFound(struct Game *g, unsigned char set[4]){
 	(*g).sizeSetsFound++;
 	//add more cards if neccessary
 	findSets(g);
-	while ((((*g).sizeSets==0 ) || (*g).sizeCards<defaultSizeCards 
-				|| ((*g).sizeCards%3!=0 && (*g).mode !=1))
-				&& (*g).remainingCards>0 ){
+	while (((*g).sizeSets==0 || (*g).sizeCards%3!=0) && (*g).remainingCards>0){
+	// || (*g).sizeCards<defaultSizeCards 
 	(*g).cards[(*g).sizeCards]=(*g).deck[81-(*g).remainingCards];
 	(*g).boolCards[(*g).deck[81-(*g).remainingCards]]=true;
 	(*g).sizeCards++;
