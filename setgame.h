@@ -119,8 +119,8 @@ void findSets(struct Game *g){	//nice way to find every set without finding one 
 	case 2:{
 	//calc conjugates
 	int i1; int i2; int j1; int j2;
-	unsigned char conjugates[66];
-	for(int i=0;i<66;i++){
+	unsigned char conjugates[78];
+	for(int i=0;i<78;i++){
 		i1 = (int)((sqrt(8*i+1)-1)/2);//index first card, n
 		i2 = i-(int)(i1*(i1+1)/2);
 		conjugates[i]=conjugateCard(

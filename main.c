@@ -352,6 +352,7 @@ void drawCards(){
 void startGame(int mode){
 	startTime = OGGetAbsoluteTime();
 	srand((long)(startTime));
+	//srand(1710620931);
 	g = initGame(mode);
 	for(int k=0;k<4;k++) selectedCards[k]=-1;
 	finishTime = -1;
