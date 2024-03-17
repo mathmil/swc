@@ -120,7 +120,8 @@ void findSets(struct Game *g){	//nice way to find every set without finding one 
 	//calc conjugates
 	int i1; int i2; int j1; int j2;
 	unsigned char conjugates[78];
-	for(int i=0;i<78;i++){
+	int pairCount = ((*g).sizeCards)*((*g).sizeCards+1)/2;
+	for(int i=0;i<pairCount;i++){
 		i1 = (int)((sqrt(8*i+1)-1)/2);//index first card, n
 		i2 = i-(int)(i1*(i1+1)/2);
 		conjugates[i]=conjugateCard(
@@ -198,7 +199,7 @@ void handleFound(struct Game *g, unsigned char set[4]){
 		(*g).cards[k]=(*g).cards[k+1];
 		}
 		(*g).sizeCards--;
-		(*g).remainingCards--;
+		//(*g).remainingCards--;
 		break;
 		}
 		}

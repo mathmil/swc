@@ -24,19 +24,25 @@ unsigned long iframeno = 0;
 #define GENLINEWIDTH 89
 #define GENLINES 40
 
-//https://ok-color-picker.netlify.app/#2a8f00
-#define RED   0xde1100ff 
-#define GREEN 0x2a8f00ff
-#define BLUE  0x006afcff
-//#define SELECTED_COLOR   0xaaaaaaff //light
-//#define UNSELECTED_COLOR 0xccccccff //light
-//#define BACKGROUND_COLOR 0xffffffff //light
-#define SELECTED_COLOR   0x111111ff	//dark
-#define UNSELECTED_COLOR 0x222222ff //dark
-#define BACKGROUND_COLOR 0x090909ff //dark
-#define FILLING_DENSITY 8
+//RGB https://ok-color-picker.netlify.app/#2a8f00
+//#define RED   0xde1100ff
+//#define GREEN 0x2a8f00ff
+//#define BLUE  0x006afcff
+#define RED   0xff0101ff //ORIG, as SWF
+#define GREEN 0x008002ff //ORIG, as SWF
+#define BLUE  0x800080ff //ORIG, as SWF
+#define SELECTED_COLOR   0x888888ff //light
+#define UNSELECTED_COLOR 0xccccccff //light
+#define BACKGROUND_COLOR 0xffffffff //light
+#define TEXT_COLOR 		 0x000000ff //light
+//#define SELECTED_COLOR   0x111111ff //dark
+//#define UNSELECTED_COLOR 0x222222ff //dark
+//#define BACKGROUND_COLOR 0x090909ff //dark
+//#define TEXT_COLOR 	   0xffffffff //dark
+#define FILLING_DENSITY 12 //lower if dark?
 
 int selectedCards[4];
+int sizeSelectedCards;
 struct Game g;
 short cardx, cardy;
 int mode = 0;//current gamemode  normal, chain, ultra
@@ -126,9 +132,9 @@ void HandleButton( int x, int y, int button, int bDown )
 	lastbuttony = y;
 	if (bDown == 0)return;
 	//bottom menu
-	if (screeny - y < 75){
+	if (screeny - y < 150){
 		int but = (int)((float)x/screenx*5);
-		if (but > 1 && but-2!=mode){
+		if (but > 1 && but-2!=g.mode){
 			finishGame();
 			mode = but-2;
 			startGame(mode);
@@ -136,7 +142,7 @@ void HandleButton( int x, int y, int button, int bDown )
 		}
 		if (but == 1){
 		finishGame();
-		startGame(mode);
+		startGame(g.mode);
 		}
 		if (but == 0){
 		if (mode != -1)
@@ -147,7 +153,7 @@ void HandleButton( int x, int y, int button, int bDown )
 	return;
 	}
 	
-	if (finishTime > 0)return;
+	if (finishTime > 0 || mode ==-1)return;
 	//select card
 	int cardsPerSet = (mode != 2) ? 3 : 4;
 	int clickedCard =  x/cardx + 3*(y/cardy);
@@ -158,12 +164,17 @@ void HandleButton( int x, int y, int button, int bDown )
 			{
 			for (int j=i;j<3;j++){selectedCards[j]=selectedCards[j+1];}
 			selectedCards[3] = -1;
+			sizeSelectedCards--;
 			return;
 			}
 	}
-	for (int i=cardsPerSet-1;i>0;i--)selectedCards[i]=selectedCards[i-1];
-	selectedCards[0] = clickedCard;
-	if (selectedCards[cardsPerSet-1]==-1) return;
+	//select with round-robin
+	//for (int i=cardsPerSet-1;i>0;i--)selectedCards[i]=selectedCards[i-1];
+	//selectedCards[0] = clickedCard;
+	//if (selectedCards[cardsPerSet-1]==-1) return;
+	selectedCards[sizeSelectedCards] = clickedCard;
+	sizeSelectedCards++;
+	if (sizeSelectedCards < cardsPerSet) return;
 	//set found?
 	unsigned char cards[4];
 	for (int i=0;i<cardsPerSet;i++){
@@ -193,6 +204,8 @@ void HandleButton( int x, int y, int button, int bDown )
 	if (g.sizeSets == 0){
 	finishGame();
 	}
+	for (int i=0;i<4;i++){selectedCards[i]=-1;}
+	sizeSelectedCards = 0;
 }
 
 void HandleMotion( int x, int y, int mask )
@@ -340,20 +353,26 @@ void drawCard(short xPos, short yPos, unsigned char c){
 }
 void drawCards(){
 	for (int i=0; i<g.sizeCards; i++){
-		if ((mode == 1 && i<3 && g.sizeSetsFound>0 ) || finishTime > 0)
-			CNFGColor(0x181818ff);
+		int oofsie = 0;
+		if (g.mode == 1 && i>2 && g.sizeSetsFound>0){
+			oofsie = 40;
+			CNFGColor(TEXT_COLOR);
+			CNFGTackSegment(0, 20+cardy,screeny,20+cardy);
+		}
+		if (finishTime > 0)
+			CNFGColor(0x888888ff);
 		else
 			CNFGColor(UNSELECTED_COLOR);
 		for (int j=0; j<4;j++){
 		if (i==selectedCards[j]) CNFGColor(SELECTED_COLOR);}
-		drawCard(i%3*cardx, i/3*cardy, g.cards[i]);
+		drawCard(i%3*cardx, i/3*cardy+oofsie, g.cards[i]);
 	}
 }
 void startGame(int mode){
 	startTime = OGGetAbsoluteTime();
 	srand((long)(startTime));
 	//srand(1710620931);
-	g = initGame(mode);
+	g = initGame(mode);//(mode == -1)?g.mode:mode);
 	for(int k=0;k<4;k++) selectedCards[k]=-1;
 	finishTime = -1;
 }
@@ -377,7 +396,7 @@ int main()
 	char timePassed[10];
 	finishTime = -1;
 	
-	CNFGSetLineWidth(2);
+	CNFGSetLineWidth(4);
 	CNFGSetupFullscreen( "Test Bench", 0 );
 
 	const char * assettext = "Not Found";
@@ -435,13 +454,13 @@ int main()
 			CNFGPenY+=25;
 			for (int i=0;i<81;i+=3){
 				sprintf(debugText,"%2hhu %2hhu %2hhu",g.deck[i],g.deck[i+1],g.deck[i+2]);
-				if (i>(81-g.remainingCards)){
+				if (i>=(81-g.remainingCards)){
 					CNFGColor(RED);
 				}
 				CNFGDrawText(debugText,5);
 				CNFGPenY+=25;
 			}
-			CNFGColor(0xffffffff);
+			CNFGColor(TEXT_COLOR);
 			CNFGPenY = 10;
 			CNFGPenX = 420;
 			sprintf(debugText,"%li",(long)startTime);
@@ -467,27 +486,27 @@ int main()
 		for (int i=0; i<5; i++){
 		if (i-2 == g.mode){
 			CNFGColor(SELECTED_COLOR);
-			CNFGTackRectangle(screenx*0.2*i+5, screeny-60, screenx*0.2*(i+1)-5, screeny-5);
+			CNFGTackRectangle(screenx*0.2*i+5, screeny-120, screenx*0.2*(i+1)-5, screeny-5);
 			CNFGColor(UNSELECTED_COLOR);
 		}
 		else 
-			CNFGTackRectangle(screenx*0.2*i+5, screeny-60, screenx*0.2*(i+1)-5, screeny-5);
+			CNFGTackRectangle(screenx*0.2*i+5, screeny-120, screenx*0.2*(i+1)-5, screeny-5);
 		}
-		CNFGColor( 0xffffffff );
-		CNFGPenY = screeny - 50;
+		CNFGColor(TEXT_COLOR);
+		CNFGPenY = screeny - 75;
 		CNFGPenX = 10+screenx*0.2*0;
 		if (g.sizeSets!=0)
 			sprintf(timePassed,"%lis %i",(long)(ThisTime - startTime),g.remainingCards);
 		else
 			sprintf(timePassed,"%.3fs",finishTime-startTime);
 		CNFGDrawText( timePassed ,8);
-		CNFGPenX = 10+screenx*0.2*1;
+		CNFGPenX = 20+screenx*0.2*1;
 		CNFGDrawText("Restart",8);
-		CNFGPenX = 10+screenx*0.2*2;
+		CNFGPenX = 20+screenx*0.2*2;
 		CNFGDrawText("Normal",8);
-		CNFGPenX = 10+screenx*0.2*3;
+		CNFGPenX = 20+screenx*0.2*3;
 		CNFGDrawText("Chain",8);
-		CNFGPenX = 10+screenx*0.2*4;
+		CNFGPenX = 20+screenx*0.2*4;
 		CNFGDrawText("Ultra",8);
 
 
