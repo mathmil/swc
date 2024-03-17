@@ -388,14 +388,14 @@ void debugScreen(){
 	//sets found
 	CNFGPenY = 70;
 	CNFGPenX = screenx*0.25;
-	CNFGDrawText("Sets found  Time",7);CNFGPenY = 105;
+	CNFGDrawText("Sets found Time",7);CNFGPenY = 105;
 	for (int i=0;i<g.sizeSetsFound;i++){
 		if (g.mode == 2)
-		sprintf(debugText,"%2hhu %2hhu %2hhu %2hhu %7.3f"
+		sprintf(debugText,"%2hhu %2hhu %2hhu %2hhu %07.3f"
 			,g.setsFound[i][0],g.setsFound[i][1],g.setsFound[i][2],g.setsFound[i][3]
 			,g.timeFound[i]-startTime);
 		else
-		sprintf(debugText," %2hhu %2hhu %2hhu   %7.3f"
+		sprintf(debugText," %2hhu %2hhu %2hhu   %07.3f"
 			,g.setsFound[i][0],g.setsFound[i][1],g.setsFound[i][2]
 			,g.timeFound[i]-startTime);
 		CNFGDrawText(debugText,7);CNFGPenY+=40;
@@ -403,10 +403,10 @@ void debugScreen(){
 	//selected
 	CNFGPenX = 0.25*screenx;
 	CNFGPenY = 20;
-	CNFGDrawText("Selected:",7);CNFGPenX+=170;
+	CNFGDrawText("Selected:",7);CNFGPenX+=190;
 	for (int i=0;i<sizeSelectedCards;i++){
 		sprintf(debugText,"%2i",selectedCards[i]);
-		CNFGDrawText(debugText,7);CNFGPenX+=50;
+		CNFGDrawText(debugText,7);CNFGPenX+=55;
 	}CNFGPenY=70;
 	//deck
 	CNFGPenX = 0.6666*screenx;
