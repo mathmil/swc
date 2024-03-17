@@ -373,6 +373,7 @@ void startGame(int mode){
 	srand((long)(startTime));
 	//srand(1710620931);
 	g = initGame(mode);//(mode == -1)?g.mode:mode);
+	sizeSelectedCards = 0;
 	for(int k=0;k<4;k++) selectedCards[k]=-1;
 	finishTime = -1;
 }
@@ -434,7 +435,7 @@ int main()
 		drawCards();
 		//debug screen
 		else {
-			char debugText[20] = "____________________";
+			char debugText[30] = "____________________";
 			CNFGPenY = 10;
 			CNFGPenX = 10;
 			for (int i=0;i<g.sizeSets;i++){
@@ -473,8 +474,9 @@ int main()
 			CNFGPenY = 100;
 			CNFGPenX = 420;
 			for (int i=0;i<g.sizeSetsFound;i++){
-				sprintf(debugText,"%2hhu %2hhu %2hhu %2hhu"
-						,g.setsFound[i][0],g.setsFound[i][1],g.setsFound[i][2],g.setsFound[i][3]);
+				sprintf(debugText,"%2hhu %2hhu %2hhu %2hhu   %.3f"
+						,g.setsFound[i][0],g.setsFound[i][1],g.setsFound[i][2],g.setsFound[i][3]
+						,g.timeFound[i]-startTime);
 				CNFGDrawText(debugText,5);
 				CNFGPenY+=25;
 			}

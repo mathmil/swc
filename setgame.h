@@ -17,6 +17,7 @@ struct Game{
 	unsigned char setsFound[40][4];	//bisher gefundene sets
 	//sets ufm tisch, 100 ist ne geschaetzte obergrenze fuer chain und normal }
 	//sortiert nach Kartenwert
+	double timeFound[40];
 	unsigned char sets[100][4];
 };
 unsigned char conjugateCard(unsigned char a, unsigned char b); //no side effects, TODO replace with faster pregenerated arry
@@ -160,6 +161,7 @@ void findSets(struct Game *g){	//nice way to find every set without finding one 
 	}
 }
 void handleFound(struct Game *g, unsigned char set[4]){
+	(*g).timeFound[(*g).sizeSetsFound] = OGGetAbsoluteTime();
 	int cardsPerSet;
 	int defaultSizeCards=12;
 	switch ((*g).mode){
