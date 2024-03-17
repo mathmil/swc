@@ -18,7 +18,7 @@ struct Game{
 	//sets ufm tisch, 100 ist ne geschaetzte obergrenze fuer chain und normal }
 	//sortiert nach Kartenwert
 	double timeFound[40];
-	unsigned char sets[100][4];
+	unsigned char sets[200][4];
 };
 unsigned char conjugateCard(unsigned char a, unsigned char b); //no side effects, TODO replace with faster pregenerated arry
 void generateDeck(unsigned char * deck);	//modifies deck; shuffles

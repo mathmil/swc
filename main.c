@@ -156,6 +156,7 @@ void HandleButton( int x, int y, int button, int bDown )
 	if (finishTime > 0 || mode ==-1)return;
 	//select card
 	int cardsPerSet = (mode != 2) ? 3 : 4;
+	if (mode == 1 && g.sizeSetsFound>0 && y>(cardy+20)) y-=40;
 	int clickedCard =  x/cardx + 3*(y/cardy);
 	if (clickedCard >= g.sizeCards) return;
 		//deselect card?
@@ -368,6 +369,70 @@ void drawCards(){
 		drawCard(i%3*cardx, i/3*cardy+oofsie, g.cards[i]);
 	}
 }
+void debugScreen(){
+	char debugText[30] = "____________________";
+	//deck
+	CNFGPenY = 10;
+	CNFGPenX = 10;
+	CNFGDrawText("Deck",12);CNFGPenY+=60;
+	sprintf(debugText,"%li",(long)startTime);
+	CNFGDrawText(debugText,6);CNFGPenY+=35;
+	for (int i=0;i<81;i+=3){
+		sprintf(debugText,"%2hhu %2hhu %2hhu",g.deck[i],g.deck[i+1],g.deck[i+2]);
+		if (i>=(81-g.remainingCards)){
+			CNFGColor(RED);
+		}
+		CNFGDrawText(debugText,10);
+		CNFGPenY+=50;
+	}CNFGColor(TEXT_COLOR);
+	//sets found
+	CNFGPenY = 70;
+	CNFGPenX = screenx*0.25;
+	CNFGDrawText("Sets found  Time",7);CNFGPenY = 105;
+	for (int i=0;i<g.sizeSetsFound;i++){
+		if (g.mode == 2)
+		sprintf(debugText,"%2hhu %2hhu %2hhu %2hhu %7.3f"
+			,g.setsFound[i][0],g.setsFound[i][1],g.setsFound[i][2],g.setsFound[i][3]
+			,g.timeFound[i]-startTime);
+		else
+		sprintf(debugText," %2hhu %2hhu %2hhu   %7.3f"
+			,g.setsFound[i][0],g.setsFound[i][1],g.setsFound[i][2]
+			,g.timeFound[i]-startTime);
+		CNFGDrawText(debugText,7);CNFGPenY+=40;
+	}
+	//selected
+	CNFGPenX = 0.25*screenx;
+	CNFGPenY = 20;
+	CNFGDrawText("Selected:",7);CNFGPenX+=170;
+	for (int i=0;i<sizeSelectedCards;i++){
+		sprintf(debugText,"%2i",selectedCards[i]);
+		CNFGDrawText(debugText,7);CNFGPenX+=50;
+	}CNFGPenY=70;
+	//deck
+	CNFGPenX = 0.6666*screenx;
+	CNFGDrawText("Cards on Table",7);CNFGPenY+=40;
+	for (int i=0;i<g.sizeCards;i+=3){
+		sprintf(debugText," %2hhu %2hhu %2hhu",g.cards[i+0],g.cards[i+1],g.cards[i+2]);
+		CNFGDrawText(debugText,10);CNFGPenY+=50;
+	}
+	//sets
+	CNFGDrawText("Sets on Table",7);CNFGPenY+=40;
+	for (int i=0;i<g.sizeSets;i++){
+		if (g.mode == 2)
+			sprintf(debugText,"%2hhu %2hhu %2hhu %2hhu",
+				g.sets[i][0],g.sets[i][1],g.sets[i][2],g.sets[i][3]);
+		else 
+			sprintf(debugText," %2hhu %2hhu %2hhu",
+				g.sets[i][0],g.sets[i][1],g.sets[i][2]);
+		CNFGDrawText(debugText,10);CNFGPenY+=50;
+	}
+	
+	
+	
+	
+	//CNFGPenY = 10;
+	//CNFGPenX = 220;
+}
 void startGame(int mode){
 	startTime = OGGetAbsoluteTime();
 	srand((long)(startTime));
@@ -431,58 +496,11 @@ int main()
 
 		CNFGBGColor = BACKGROUND_COLOR;
 	
-		if (mode != -1)
-		drawCards();
-		//debug screen
-		else {
-			char debugText[30] = "____________________";
-			CNFGPenY = 10;
-			CNFGPenX = 10;
-			for (int i=0;i<g.sizeSets;i++){
-				sprintf(debugText,"%2hhu %2hhu %2hhu %2hhu"
-						,g.sets[i][0],g.sets[i][1],g.sets[i][2],g.sets[i][3]);
-				CNFGDrawText(debugText,5);
-				CNFGPenY+=25;
-			}
-			CNFGPenY = 10;
-			CNFGPenX = 220;
-			for (int i=0;i<g.sizeCards;i+=3){
-				sprintf(debugText,"%2hhu %2hhu %2hhu"
-						,g.cards[i+0],g.cards[i+1],g.cards[i+2]);
-				CNFGDrawText(debugText,5);
-				CNFGPenY+=25;
-			}
-			CNFGPenY+=25;
-			for (int i=0;i<81;i+=3){
-				sprintf(debugText,"%2hhu %2hhu %2hhu",g.deck[i],g.deck[i+1],g.deck[i+2]);
-				if (i>=(81-g.remainingCards)){
-					CNFGColor(RED);
-				}
-				CNFGDrawText(debugText,5);
-				CNFGPenY+=25;
-			}
-			CNFGColor(TEXT_COLOR);
-			CNFGPenY = 10;
-			CNFGPenX = 420;
-			sprintf(debugText,"%li",(long)startTime);
-			CNFGDrawText(debugText,5);
-			CNFGPenX = 420;
-			CNFGPenY = 35;
-			sprintf(debugText,"%i %i %i %i"
-					,selectedCards[0],selectedCards[1],selectedCards[2],selectedCards[3]);
-			CNFGDrawText(debugText,5);
-			CNFGPenY = 100;
-			CNFGPenX = 420;
-			for (int i=0;i<g.sizeSetsFound;i++){
-				sprintf(debugText,"%2hhu %2hhu %2hhu %2hhu   %.3f"
-						,g.setsFound[i][0],g.setsFound[i][1],g.setsFound[i][2],g.setsFound[i][3]
-						,g.timeFound[i]-startTime);
-				CNFGDrawText(debugText,5);
-				CNFGPenY+=25;
-			}
-		}
+		if (mode == -1) debugScreen();
+		else drawCards();
 		
 		//bottom row
+		//CNFGSetLineWidth(4);
 		CNFGPenX = 10;
 		CNFGColor(UNSELECTED_COLOR);
 		for (int i=0; i<5; i++){
@@ -510,6 +528,7 @@ int main()
 		CNFGDrawText("Chain",8);
 		CNFGPenX = 20+screenx*0.2*4;
 		CNFGDrawText("Ultra",8);
+		//CNFGSetLineWidth(4);
 
 
 		//log and FPS
