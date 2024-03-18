@@ -377,14 +377,15 @@ void debugScreen(){
 	CNFGDrawText("Deck",12);CNFGPenY+=60;
 	sprintf(debugText,"%li",(long)startTime);
 	CNFGDrawText(debugText,6);CNFGPenY+=35;
+	CNFGColor(RED);
 	for (int i=0;i<81;i+=3){
 		sprintf(debugText,"%2hhu %2hhu %2hhu",g.deck[i],g.deck[i+1],g.deck[i+2]);
 		if (i>=(81-g.remainingCards)){
-			CNFGColor(RED);
+			CNFGColor(TEXT_COLOR);
 		}
 		CNFGDrawText(debugText,10);
 		CNFGPenY+=50;
-	}CNFGColor(TEXT_COLOR);
+	}
 	//sets found
 	CNFGPenY = 70;
 	CNFGPenX = screenx*0.25;
@@ -437,6 +438,8 @@ void startGame(int mode){
 	startTime = OGGetAbsoluteTime();
 	srand((long)(startTime));
 	//srand(1710620931);
+	//srand(1710740959);//2 6 13; ecken; seitenmitten; fixed by 60dc847 (v0.1.5)
+	//srand(1710763402);//12 10 8; 10 8 5; fixed by 60dc847 (v0.1.5)
 	g = initGame(mode);//(mode == -1)?g.mode:mode);
 	sizeSelectedCards = 0;
 	for(int k=0;k<4;k++) selectedCards[k]=-1;
