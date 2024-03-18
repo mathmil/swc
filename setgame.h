@@ -15,15 +15,15 @@ struct Game{
 								//swf keybinds say its below 27
 	bool boolCards[81];		//karten ufm tisch
 	unsigned char setsFound[40][4];	//bisher gefundene sets
+	double timeFound[40];
 	//sets ufm tisch, 100 ist ne geschaetzte obergrenze fuer chain und normal }
 	//sortiert nach Kartenwert
-	double timeFound[40];
 	unsigned char sets[200][4];
 };
-unsigned char conjugateCard(unsigned char a, unsigned char b); //no side effects, TODO replace with faster pregenerated arry
+unsigned char conjugateCard(unsigned char a, unsigned char b); //no side effects
 void generateDeck(unsigned char * deck);	//modifies deck; shuffles
-void findSets(struct Game *g);			//modifies sets; chains need testing
-void addCards(struct Game *g);			//modifies cards, indirectly sets, unfinshed, unused
+void findSets(struct Game *g);			//modifies sets
+void addCards(struct Game *g);			//modifies cards, indirectly sets
 void handleFound(struct Game *g, unsigned char set[4]);//modifies everything
 struct Game initGame(int mode);
 void testBoolCards(struct  Game *g);
@@ -41,6 +41,7 @@ void simulateGame(int mode){
 //	remainingCards[g.sizeCards/3]++;
 }
 unsigned char conjugateCard(unsigned char a, unsigned char b){
+	//TODO replace with precalculated array[1080]
 	unsigned char c = 0;
 	for (int i=1;i<81;i*=3){
 		c+=(81-(a%3+b%3))%3*i;
@@ -59,21 +60,25 @@ void generateDeck(unsigned char * deck){
 	}
 }
 void addCards(struct Game *g){
-	while ((*g).sizeSets >0){
-	continue;
+	//TODO add duffs device to call findSets less often
+	while (((*g).sizeSets==0 || (*g).sizeCards%3!=0) && (*g).remainingCards>0){
+		(*g).cards[(*g).sizeCards]=(*g).deck[81-(*g).remainingCards];
+		(*g).boolCards[(*g).deck[81-(*g).remainingCards]]=true;
+		(*g).sizeCards++;
+		(*g).remainingCards--;
+		findSets(g);
 	}
-	return;
 }
-void findSets(struct Game *g){	//nice way to find every set without finding one twice?
+void findSets(struct Game *g){
+	//nice way to find every set without finding one twice?
+	//TODO Cache sets
 	//recalc boolCards
-	//if ((*g).mode == 1){ 
-		for (int i = 0; i<81; i++){
-			(*g).boolCards[i]=false;
-		}
-		for (int i=0;i<(*g).sizeCards;i++){
-			(*g).boolCards[(*g).cards[i]]=true;
-		}
-	//}
+	for (int i = 0; i<81; i++){
+		(*g).boolCards[i]=false;
+	}
+	for (int i=0;i<(*g).sizeCards;i++){
+		(*g).boolCards[(*g).cards[i]]=true;
+	}
 	//testBoolCards(g);	
 	(*g).sizeSets=0;
 	unsigned char a;	//currently all 6 permutations checked, only sorted added
@@ -88,7 +93,8 @@ void findSets(struct Game *g){	//nice way to find every set without finding one 
 		a = (*g).cards[i];
 		b = (*g).cards[j];
 		c = conjugateCard(a,b);
-		if (a<b && b<c && (*g).boolCards[c]){	//if optimized needs a different uniqueness check
+		if (a<b && b<c && (*g).boolCards[c]){
+			//if optimized needs a different uniqueness check
 			(*g).sets[(*g).sizeSets][0]=a;
 			(*g).sets[(*g).sizeSets][1]=b;
 			(*g).sets[(*g).sizeSets][2]=c;
@@ -105,7 +111,7 @@ void findSets(struct Game *g){	//nice way to find every set without finding one 
 		a = (*g).cards[i];
 		b = (*g).cards[j];
 		c = conjugateCard(a,b);
-		if (b<c && (*g).boolCards[c]){	//if optimized needs a different uniqueness check
+		if (b<c && (*g).boolCards[c]){//always keep chain first?
 			if (a>b){a=a+b;b=a-b;a=a-b;}
 			if (b>c){b=b+c;c=b-c;b=b-c;}
 			(*g).sets[(*g).sizeSets][0]=a;
@@ -117,19 +123,19 @@ void findSets(struct Game *g){	//nice way to find every set without finding one 
 	}
 	break;
 	}
-	case 2:{
-	//calc conjugates
+	case 2:{//ultra
+	//TODO cache conjugates, "hashmap" for conjugates
 	int i1; int i2; int j1; int j2;
 	unsigned char conjugates[78];
 	int pairCount = ((*g).sizeCards)*((*g).sizeCards+1)/2;
 	for(int i=0;i<pairCount;i++){
-		i1 = (int)((sqrt(8*i+1)-1)/2);//index first card, n
+		i1 = (int)((sqrt(8*i+1)-1)/2);//index first card
 		i2 = i-(int)(i1*(i1+1)/2);
 		conjugates[i]=conjugateCard(
 		(*g).cards[i1],(*g).cards[i2]);
 		for (int j=0;j<i;j++){
 			if(conjugates[i]==conjugates[j]){
-			j1 = (int)((sqrt(8*j+1)-1)/2);//index first card, n
+			j1 = (int)((sqrt(8*j+1)-1)/2);//index first card
 			j2 = j-(int)(j1*(j1+1)/2);
 			a = (*g).cards[i1];
 			b = (*g).cards[i2];
@@ -152,16 +158,14 @@ void findSets(struct Game *g){	//nice way to find every set without finding one 
 			}
 		}	
 	}
-	//for(int j=0; j<11;j++){for(int k=j+1;k<12;k++){
-	//	conjugates[(int)(j*(j+1)/2)+k]=conjugateCard((*g).cards[j],(*g).cards[k]);
-	//}}
-
 	break;
 	}
 	}
 }
 void handleFound(struct Game *g, unsigned char set[4]){
+	//TODO fix boolCards
 	(*g).timeFound[(*g).sizeSetsFound] = OGGetAbsoluteTime();
+	for(int i=0;i<4;i++) (*g).setsFound[(*g).sizeSetsFound][i]=set[i];
 	int cardsPerSet;
 	int defaultSizeCards=12;
 	switch ((*g).mode){
@@ -177,13 +181,15 @@ void handleFound(struct Game *g, unsigned char set[4]){
 			}
 			(*g).sizeCards+=3;
 		}
-		for (int i=0;i<3;i++){
-			(*g).boolCards[(*g).cards[i]]=false;
+		else
+			for (int i=0;i<3;i++)
+				(*g).boolCards[(*g).cards[i]]=false;
+		for (int i=0;i<3;i++)
 			(*g).cards[i] = set[i];
-		}
+		
 	}
 	for (int j=0;j<cardsPerSet;j++){//für alle karten im set
-	if ((*g).remainingCards>0 && (*g).sizeCards <= defaultSizeCards){//karten ersetzen
+	if ((*g).remainingCards>0 && (*g).sizeCards <= defaultSizeCards){//replace set
 		for(int i=(*g).mode!=1?0:3;i<(*g).sizeCards;i++){
 		if ((*g).cards[i]==set[j]){
 		(*g).boolCards[set[j]]=false;
@@ -193,15 +199,14 @@ void handleFound(struct Game *g, unsigned char set[4]){
 		break;
 		}
 		}
-	} else  { //karten nur entfernen & aufrutschen, nicht ersetzen
-		for(int i=(*g).mode!=1?0:3;i<(*g).sizeCards;i++){//karte finden
+	} else  {//remove set
+		for(int i=((*g).mode!=1)?0:3;i<(*g).sizeCards;i++){//find card
 		if ((*g).cards[i]==set[j]){
 		(*g).boolCards[(*g).cards[i]]=false;
-		for(int k=i;k<(*g).sizeCards-1;k++){//karten rutschen
-		(*g).cards[k]=(*g).cards[k+1];
+		for(int k=i;k<(*g).sizeCards-1;k++){//move cards
+			(*g).cards[k]=(*g).cards[k+1];
 		}
 		(*g).sizeCards--;
-		//(*g).remainingCards--;
 		break;
 		}
 		}
@@ -210,20 +215,10 @@ void handleFound(struct Game *g, unsigned char set[4]){
 	if ((*g).mode == 1)
 		for (int i=0;i<3;i++)
 			(*g).boolCards[set[i]]=true;
-	//log set
-	for(int i=0;i<4;i++) (*g).setsFound[(*g).sizeSetsFound][i]=set[i];
-	
 	(*g).sizeSetsFound++;
-	//add more cards if neccessary
 	findSets(g);
-	while (((*g).sizeSets==0 || (*g).sizeCards%3!=0) && (*g).remainingCards>0){
-	// || (*g).sizeCards<defaultSizeCards 
-	(*g).cards[(*g).sizeCards]=(*g).deck[81-(*g).remainingCards];
-	(*g).boolCards[(*g).deck[81-(*g).remainingCards]]=true;
-	(*g).sizeCards++;
-	(*g).remainingCards--;
-	findSets(g);
-	}
+	if ((*g).sizeSets==0)
+		addCards(g);
 }
 struct Game initGame(int mode){
 	struct Game g;
@@ -239,14 +234,8 @@ struct Game initGame(int mode){
 		g.boolCards[g.deck[i]]=true;
 	}
 	findSets(&g);
-	while (g.sizeSets==0){//add more (than 12) cards if neccessary
-	for (int i=0;i<3;i++){
-	g.cards[g.sizeCards]=g.deck[g.sizeCards];
-	g.boolCards[g.deck[g.sizeCards]]=true;
-	g.sizeCards++;
-	}
-	findSets(&g);
-	}
+	if (g.sizeSets==0)
+		addCards(&g);
 	return g;
 }
 void testBoolCards(struct  Game *g){
