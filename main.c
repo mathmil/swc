@@ -45,7 +45,7 @@ int selectedCards[4];
 int sizeSelectedCards;
 struct Game g;
 short cardx, cardy;
-int mode = 0;//current gamemode  normal, chain, ultra
+int mode = 0;//current gamemode  normal, chain, ultra; -1 menu; -1 menu
 double startTime;
 double finishTime; //-1 if game didn't finish yet, also used to check if game finished yet
 
@@ -383,26 +383,26 @@ void debugScreen(){
 		if (i>=(81-g.remainingCards)){
 			CNFGColor(TEXT_COLOR);
 		}
-		CNFGDrawText(debugText,10);
+		CNFGDrawText(debugText,9);
 		CNFGPenY+=50;
-	}
+	}CNFGColor(TEXT_COLOR);
 	//sets found
 	CNFGPenY = 70;
-	CNFGPenX = screenx*0.25;
-	CNFGDrawText("Sets found Time",7);CNFGPenY = 105;
+	CNFGPenX = 0.22*screenx;
+	CNFGDrawText("Sets found  Time    No",7);CNFGPenY = 105;
 	for (int i=0;i<g.sizeSetsFound;i++){
 		if (g.mode == 2)
-		sprintf(debugText,"%2hhu %2hhu %2hhu %2hhu %07.3f"
+		sprintf(debugText,"%2hhu %2hhu %2hhu %2hhu %07.3f %02i"
 			,g.setsFound[i][0],g.setsFound[i][1],g.setsFound[i][2],g.setsFound[i][3]
-			,g.timeFound[i]-startTime);
+			,g.timeFound[i]-startTime, i+1);
 		else
-		sprintf(debugText," %2hhu %2hhu %2hhu   %07.3f"
+		sprintf(debugText," %2hhu %2hhu %2hhu   %07.3f %02i"
 			,g.setsFound[i][0],g.setsFound[i][1],g.setsFound[i][2]
-			,g.timeFound[i]-startTime);
+			,g.timeFound[i]-startTime,i+1);
 		CNFGDrawText(debugText,7);CNFGPenY+=40;
 	}
 	//selected
-	CNFGPenX = 0.25*screenx;
+	CNFGPenX = 0.22*screenx;
 	CNFGPenY = 20;
 	CNFGDrawText("Selected:",7);CNFGPenX+=190;
 	for (int i=0;i<sizeSelectedCards;i++){
@@ -427,12 +427,6 @@ void debugScreen(){
 				g.sets[i][0],g.sets[i][1],g.sets[i][2]);
 		CNFGDrawText(debugText,10);CNFGPenY+=50;
 	}
-	
-	
-	
-	
-	//CNFGPenY = 10;
-	//CNFGPenX = 220;
 }
 void startGame(int mode){
 	startTime = OGGetAbsoluteTime();
@@ -478,6 +472,8 @@ int main()
 		temp[fileLength] = 0;
 		assettext = temp;
 	}
+
+//	AndroidReqestAppPermissions("WRITE_EXTERNAL_STORAGE");
 
 	while(1)
 	{
