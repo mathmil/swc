@@ -3,27 +3,26 @@
 #include <time.h>
 #include <stdbool.h>
 #include <math.h>
-//card: unsigned char c; 0<=card<=80; farbe, form, fuellung, anzahl; color shape, filling, number
+//card: unsigned char c; 0<=card<=80; farbe, form, fuellung, anzahl; color, shape, filling, number
 struct Game{
-	int mode; 			//mode 0 = normal, 1=chain, 2=ultra
-	int sizeCards;			//anzahl karten ufm tisch chain: mit dem set
-	int sizeSets;			//anzahl sets ufm tisch
-	int sizeSetsFound;		//anzahl bisher gefundener sets=3*verbrauchte karten
-	int remainingCards; //cards remaining in Deck
-	unsigned char deck[81];		//alle karten, gemischt 
-	unsigned char cards[27];	//karten ufm tisch, bei chain ersten 3 letztes set
-								//swf keybinds say its below 27
-	bool boolCards[81];		//karten ufm tisch
-	unsigned char setsFound[40][4];	//bisher gefundene sets
+	int mode;//mode 0 = normal, 1=chain, 2=ultra
+	int sizeCards;
+	int sizeSets;
+	int sizeSetsFound;
+	int remainingCards;//cards remaining in Deck
+	unsigned char deck[81];//all cards, shuffled
+	unsigned char cards[27];//cards on table, including previous set in chain
+                            //swf keybinds say its below 27
+	bool boolCards[81];     //cards on table
+	unsigned char setsFound[40][4];//sets Found by player
 	double timeFound[40];
-	//sets ufm tisch, 100 ist ne geschaetzte obergrenze fuer chain und normal }
-	//sortiert nach Kartenwert
+	//sets on table, cards are sorted
 	unsigned char sets[200][4];
 };
-unsigned char conjugateCard(unsigned char a, unsigned char b); //no side effects
-void generateDeck(unsigned char * deck);	//modifies deck; shuffles
-void findSets(struct Game *g);			//modifies sets
-void addCards(struct Game *g);			//modifies cards, indirectly sets
+unsigned char conjugateCard(unsigned char a, unsigned char b);//no side effects
+void generateDeck(unsigned char * deck);//modifies deck; shuffles
+void findSets(struct Game *g);//modifies sets
+void addCards(struct Game *g);//modifies cards, indirectly sets
 void handleFound(struct Game *g, unsigned char set[4]);//modifies everything
 struct Game initGame(int mode);
 void testBoolCards(struct  Game *g);
@@ -175,7 +174,8 @@ void handleFound(struct Game *g, unsigned char set[4]){
 	}
 	if ((*g).mode==1){
 		defaultSizeCards=15;
-		if ((*g).sizeSetsFound == 0){ //move cards
+		if ((*g).sizeSetsFound == 0){
+			//move cards
 			for (int i=(*g).sizeCards-1;i>-1;i--){
 				(*g).cards[i+3]=(*g).cards[i];
 			}
@@ -188,8 +188,9 @@ void handleFound(struct Game *g, unsigned char set[4]){
 			(*g).cards[i] = set[i];
 		
 	}
-	for (int j=0;j<cardsPerSet;j++){//für alle karten im set
-	if ((*g).remainingCards>0 && (*g).sizeCards <= defaultSizeCards){//replace set
+	for (int j=0;j<cardsPerSet;j++){
+	if ((*g).remainingCards>0 && (*g).sizeCards <= defaultSizeCards){
+		//replace set
 		for(int i=(*g).mode!=1?0:3;i<(*g).sizeCards;i++){
 		if ((*g).cards[i]==set[j]){
 		(*g).boolCards[set[j]]=false;
@@ -199,11 +200,13 @@ void handleFound(struct Game *g, unsigned char set[4]){
 		break;
 		}
 		}
-	} else  {//remove set
-		for(int i=((*g).mode!=1)?0:3;i<(*g).sizeCards;i++){//find card
+	} else  {
+		//remove set
+		for(int i=((*g).mode!=1)?0:3;i<(*g).sizeCards;i++){
 		if ((*g).cards[i]==set[j]){
 		(*g).boolCards[(*g).cards[i]]=false;
-		for(int k=i;k<(*g).sizeCards-1;k++){//move cards
+		//move cards
+		for(int k=i;k<(*g).sizeCards-1;k++){
 			(*g).cards[k]=(*g).cards[k+1];
 		}
 		(*g).sizeCards--;
