@@ -15,6 +15,7 @@ struct Game{
                             //swf keybinds say its below 27
 	bool boolCards[81];     //cards on table
 	unsigned char setsFound[40][4];//sets Found by player
+	double startTime;
 	double timeFound[40];
 	//sets on table, cards are sorted
 	unsigned char sets[200][4];
@@ -38,6 +39,49 @@ void simulateGame(int mode){
 	}
 //	games[maxBoard/3]++;
 //	remainingCards[g.sizeCards/3]++;
+}
+void writeGameToFile(struct Game g, FILE* file){
+	int length = 0;
+	fseek(file,2, SEEK_CUR);
+	//startTime
+	long long startTime = (long long)g.startTime;
+	for (int i=0;i<8;i++){
+		fputc(startTime%256,file);length++;
+		startTime >>= 8;
+	}
+	//cards
+	if (g.sizeSetsFound>0){
+		const int cardsPerSet = (g.mode==2)?4:2;
+		for(int i=0;i<g.sizeSetsFound;i++){
+			for(int j=0;j<cardsPerSet;j++){
+				fputc(g.setsFound[i][j],file);length++;
+			}
+		}
+		fseek(file,-1,SEEK_CUR);
+		fputc(128+g.setsFound[g.sizeSetsFound-1][cardsPerSet-1],file);
+	}
+	//times in millis since last set in LEB128
+	unsigned long timeSet;
+	unsigned char byte;
+	for(int i=0;i<g.sizeSetsFound;i++){
+		if (i>0)
+			timeSet = (long)(1000*(g.timeFound[i]-g.timeFound[i-1]));
+		else
+			timeSet = (long)(1000*(g.timeFound[i]-g.startTime));
+		do {
+			byte = timeSet%128;
+			timeSet >>=7;
+			if (timeSet!=0)
+				byte+=128;
+			fputc(byte,file);length++;
+		} while (timeSet!=0);
+	}
+	//message length
+	fseek(file,-length-2,SEEK_CUR);
+	fputc(length     %256,file);
+	fputc((length>>8)%256,file);
+	fseek(file,length,SEEK_CUR);
+	return;
 }
 unsigned char conjugateCard(unsigned char a, unsigned char b){
 	//TODO replace with precalculated array[1080]
@@ -78,7 +122,7 @@ void findSets(struct Game *g){
 	for (int i=0;i<(*g).sizeCards;i++){
 		(*g).boolCards[(*g).cards[i]]=true;
 	}
-	//testBoolCards(g);	
+//	testBoolCards(g);	
 	(*g).sizeSets=0;
 	unsigned char a;	//currently all 6 permutations checked, only sorted added
 	unsigned char b;	//could improve speed at least 2x
@@ -230,6 +274,11 @@ struct Game initGame(int mode){
 	g.sizeSetsFound=0;
 	g.sizeSets=0;
 	g.remainingCards=69;
+	g.startTime = OGGetAbsoluteTime();
+	srand((long)(g.startTime));
+	//srand(1710620931);
+	//srand(1710740959);//2 6 13; ecken; seitenmitten; fixed by 60dc847 (v0.1.5)
+	//srand(1710763402);//12 10 8; 10 8 5; fixed by 60dc847 (v0.1.5)
 	generateDeck(g.deck);
 	for(int i=0;i<81;i++) g.boolCards[i]=false;
 	for (int i=0;i<12;i++){

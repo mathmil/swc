@@ -7,6 +7,7 @@
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
 #include <android_native_app_glue.h>
+#include <android/native_activity.h>
 #include <android/log.h>
 #include <android/sensor.h>
 #include "CNFGAndroid.h"
@@ -46,7 +47,6 @@ int sizeSelectedCards;
 struct Game g;
 short cardx, cardy;
 int mode = 0;//current gamemode  normal, chain, ultra; -1 menu; -1 menu
-double startTime;
 double finishTime; //-1 if game didn't finish yet, also used to check if game finished yet
 
 int genlinelen = 0;
@@ -135,39 +135,49 @@ void HandleButton( int x, int y, int button, int bDown )
 	if (screeny - y < 150){
 		int but = (int)((float)x/screenx*5);
 		if (but > 1 && but-2!=g.mode){
+			//change mode
 			finishGame();
 			mode = but-2;
 			startGame(mode);
 			return;
 		}
 		if (but == 1){
-		finishGame();
-		startGame(g.mode);
+			//restart
+			finishGame();
+			startGame(g.mode);
 		}
+		//debug screen
 		if (but == 0){
-		if (mode != -1)
-			mode = -1;
-		else
-			mode = g.mode;
+			FILE* file = fopen("/data/data/org.mathmil.swc/files/games.bin","wb+");
+			if (file != NULL)
+			{
+				writeGameToFile(g,file);
+				fflush(file);
+				fclose(file);
+			}
+			if (mode != -1)
+				mode = -1;
+			else
+				mode = g.mode;
 		}
 	return;
 	}
-	
-	if (finishTime > 0 || mode ==-1)return;
+	if (finishTime > 0 || mode ==-1)
+		//no cards there to select
+		return;
 	//select card
 	int cardsPerSet = (mode != 2) ? 3 : 4;
 	if (mode == 1 && g.sizeSetsFound>0 && y>(cardy+20)) y-=40;
 	int clickedCard =  x/cardx + 3*(y/cardy);
 	if (clickedCard >= g.sizeCards) return;
-		//deselect card?
 	for (int i=0;i<4;i++) {
-		if (clickedCard == selectedCards[i])
-			{
+		if (clickedCard == selectedCards[i]){
+			//deselect card
 			for (int j=i;j<3;j++){selectedCards[j]=selectedCards[j+1];}
 			selectedCards[3] = -1;
 			sizeSelectedCards--;
 			return;
-			}
+		}
 	}
 	//select with round-robin
 	//for (int i=cardsPerSet-1;i>0;i--)selectedCards[i]=selectedCards[i-1];
@@ -176,7 +186,9 @@ void HandleButton( int x, int y, int button, int bDown )
 	selectedCards[sizeSelectedCards] = clickedCard;
 	sizeSelectedCards++;
 	if (sizeSelectedCards < cardsPerSet) return;
-	//set found?
+	//check if set was found
+	//TODO just calculate whether the selected Cards are a set,
+	//don't look it up in the list
 	unsigned char cards[4];
 	for (int i=0;i<cardsPerSet;i++){
 		cards[i] = g.cards[selectedCards[i]];
@@ -225,11 +237,25 @@ void HandleDestroy()
 
 void HandleSuspend()
 {
+    FILE* file = fopen("/data/data/org.mathmil.swc/files/suspend.txt","ab+");
+    if (file != NULL)
+    {
+        fputs("I just got suspended!\n", file);
+		fflush(file);
+        fclose(file);
+    }
 	suspended = 1;
 }
 
 void HandleResume()
 {
+    FILE* file = fopen("/data/data/org.mathmil.swc/files/resume.txt","ab+");
+    if (file != NULL)
+    {
+        fputs("I just resumed!\n", file);
+		fflush(file);
+        fclose(file);
+    }
 	suspended = 0;
 }
 
@@ -375,7 +401,7 @@ void debugScreen(){
 	CNFGPenY = 10;
 	CNFGPenX = 10;
 	CNFGDrawText("Deck",12);CNFGPenY+=60;
-	sprintf(debugText,"%li",(long)startTime);
+	sprintf(debugText,"%lli",(long long)g.startTime);
 	CNFGDrawText(debugText,6);CNFGPenY+=35;
 	CNFGColor(RED);
 	for (int i=0;i<81;i+=3){
@@ -394,11 +420,11 @@ void debugScreen(){
 		if (g.mode == 2)
 		sprintf(debugText,"%2hhu %2hhu %2hhu %2hhu %07.3f %02i"
 			,g.setsFound[i][0],g.setsFound[i][1],g.setsFound[i][2],g.setsFound[i][3]
-			,g.timeFound[i]-startTime, i+1);
+			,g.timeFound[i]-g.startTime, i+1);
 		else
 		sprintf(debugText," %2hhu %2hhu %2hhu   %07.3f %02i"
 			,g.setsFound[i][0],g.setsFound[i][1],g.setsFound[i][2]
-			,g.timeFound[i]-startTime,i+1);
+			,g.timeFound[i]-g.startTime,i+1);
 		CNFGDrawText(debugText,7);CNFGPenY+=40;
 	}
 	//selected
@@ -429,12 +455,7 @@ void debugScreen(){
 	}
 }
 void startGame(int mode){
-	startTime = OGGetAbsoluteTime();
-	srand((long)(startTime));
-	//srand(1710620931);
-	//srand(1710740959);//2 6 13; ecken; seitenmitten; fixed by 60dc847 (v0.1.5)
-	//srand(1710763402);//12 10 8; 10 8 5; fixed by 60dc847 (v0.1.5)
-	g = initGame(mode);//(mode == -1)?g.mode:mode);
+	g = initGame(mode);
 	sizeSelectedCards = 0;
 	for(int k=0;k<4;k++) selectedCards[k]=-1;
 	finishTime = -1;
@@ -455,9 +476,7 @@ int main()
 	int linesegs = 0;
 
 	startGame(mode);
-	//startTime = OGGetAbsoluteTime();
-	char timePassed[10];
-	finishTime = -1;
+	char timePassed[12];
 	
 	CNFGSetLineWidth(4);
 	CNFGSetupFullscreen( "Test Bench", 0 );
@@ -473,7 +492,7 @@ int main()
 		assettext = temp;
 	}
 
-//	AndroidReqestAppPermissions("WRITE_EXTERNAL_STORAGE");
+//	AndroidRequestAppPermissions("WRITE_EXTERNAL_STORAGE");
 
 	while(1)
 	{
@@ -515,9 +534,9 @@ int main()
 		CNFGPenY = screeny - 75;
 		CNFGPenX = 10+screenx*0.2*0;
 		if (g.sizeSets!=0)
-			sprintf(timePassed,"%lis %i",(long)(ThisTime - startTime),g.remainingCards);
+			sprintf(timePassed,"%lis %i",(long)(ThisTime - g.startTime),g.remainingCards);
 		else
-			sprintf(timePassed,"%.3fs",finishTime-startTime);
+			sprintf(timePassed,"%.3fs",finishTime-g.startTime);
 		CNFGDrawText( timePassed ,8);
 		CNFGPenX = 20+screenx*0.2*1;
 		CNFGDrawText("Restart",8);
@@ -533,7 +552,8 @@ int main()
 		//log and FPS
 		CNFGPenY = screeny - 1000;
 		CNFGPenX = 5;
-//		CNFGDrawText(genlog, 4);
+		CNFGColor(TEXT_COLOR);
+		//CNFGDrawText(genlog, 4);
 		frames++;
 		CNFGSwapBuffers();
 
@@ -543,7 +563,8 @@ int main()
 			printf( "FPS: %d\n", frames );
 			printf("%d %d \n",lastbuttonx, lastbuttony);
 			printf("%s \n",timePassed);
-			printf("%f \n",wgl_last_width_over_2);//CNFGSetLineWidth
+			//CNFGSetLineWidth(1)
+			printf("%f \n",wgl_last_width_over_2);
 			frames = 0;
 			linesegs = 0;
 			LastFPSTime+=1;
