@@ -1,0 +1,5 @@
+*.keystore
+makecapk/
+swc*.apk
+swc.apk.idsig
+AndroidManifest.xml
