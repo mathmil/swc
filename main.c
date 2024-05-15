@@ -132,7 +132,7 @@ void HandleButton( int x, int y, int button, int bDown )
 	lastbuttony = y;
 	if (bDown == 0)return;
 	//bottom menu
-	if (screeny - y < 150){
+	if (screeny - y < cardy*5/6){
 		int but = (int)((float)x/screenx*5);
 		if (but > 1 && but-2!=g.mode){
 			//change mode
@@ -349,8 +349,6 @@ void drawCard(short xPos, short yPos, unsigned char c){
 		CNFGColor(BLUE);
 		break;
 	}
-//	if (filling==0)	CNFGSetLineWidth(2); //activate once squiggles are fixed
-//	else CNFGSetLineWidth(1);
 	void (*drawShape)(short xPos, short yPos, short length, int filling);
 	switch (shape){
 	case 0:
@@ -382,9 +380,9 @@ void drawCards(){
 	for (int i=0; i<g.sizeCards; i++){
 		int oofsie = 0;
 		if (g.mode == 1 && i>2 && g.sizeSetsFound>0){
-			oofsie = 40;
+			oofsie = cardy/6;
 			CNFGColor(TEXT_COLOR);
-			CNFGTackSegment(0, 20+cardy,screeny,20+cardy);
+			CNFGTackSegment(0, oofsie/2+cardy,screenx,oofsie/2+cardy);
 		}
 		if (finishTime > 0)
 			CNFGColor(0x888888ff);
@@ -395,64 +393,119 @@ void drawCards(){
 		drawCard(i%3*cardx, i/3*cardy+oofsie, g.cards[i]);
 	}
 }
-void debugScreen(){
+void drawDebugScreen(){
+	/*
+	char box height: 6*textSize px
+	char box  width: 3*textSize px
+	char in the upper right of the box
+	over the whole width:
+		3 card columns deck  =>  9 chars
+		4 card columns setsF => 12 chars
+		time with number     => 10 chars
+		4 card columns setsT => 12 chars
+	43~45 chars total
+	idc that there might not be enough vertical space
+	*/
+	short textSize = screenx/(3*45);
+	CNFGSetLineWidth((short)((float)screenx*4/1080+0.5) > 1 ? (short)((float)screenx*4/1080+0.5) : 1);
 	char debugText[30] = "____________________";
 	//deck
-	CNFGPenY = 10;
-	CNFGPenX = 10;
-	CNFGDrawText("Deck",12);CNFGPenY+=60;
+	CNFGPenY = textSize;
+	CNFGPenX = textSize;
+	CNFGDrawText("Deck",textSize);CNFGPenY+=6*(textSize*12/10);
 	sprintf(debugText,"%lli",(long long)g.startTime);
-	CNFGDrawText(debugText,6);CNFGPenY+=35;
+	CNFGDrawText(debugText,textSize*8/10);CNFGPenY+=6*(textSize*8/10);
 	CNFGColor(RED);
 	for (int i=0;i<81;i+=3){
 		sprintf(debugText,"%2hhu %2hhu %2hhu",g.deck[i],g.deck[i+1],g.deck[i+2]);
-		if (i>=(81-g.remainingCards)){
+		if (i>=(81-g.remainingCards))
 			CNFGColor(TEXT_COLOR);
-		}
-		CNFGDrawText(debugText,9);
-		CNFGPenY+=50;
+		CNFGDrawText(debugText,textSize);
+		CNFGPenY+=6*textSize;
 	}CNFGColor(TEXT_COLOR);
 	//sets found
-	CNFGPenY = 70;
-	CNFGPenX = 0.22*screenx;
-	CNFGDrawText("Sets found  Time    No",7);CNFGPenY = 105;
+	CNFGPenY = textSize + 6*(textSize*12/10);
+	CNFGPenX = (9*3+1)*textSize;
+	CNFGDrawText("Sets found  Time    No",textSize);CNFGPenY = (2*6+1)*textSize;
 	for (int i=0;i<g.sizeSetsFound;i++){
 		if (g.mode == 2)
 		sprintf(debugText,"%2hhu %2hhu %2hhu %2hhu %07.3f %02i"
 			,g.setsFound[i][0],g.setsFound[i][1],g.setsFound[i][2],g.setsFound[i][3]
 			,g.timeFound[i]-g.startTime, i+1);
 		else
-		sprintf(debugText," %2hhu %2hhu %2hhu   %07.3f %02i"
+		sprintf(debugText,"%2hhu %2hhu %2hhu    %07.3f %02i"
 			,g.setsFound[i][0],g.setsFound[i][1],g.setsFound[i][2]
 			,g.timeFound[i]-g.startTime,i+1);
-		CNFGDrawText(debugText,7);CNFGPenY+=40;
+		CNFGDrawText(debugText,textSize);CNFGPenY+=6*textSize;
 	}
 	//selected
-	CNFGPenX = 0.22*screenx;
-	CNFGPenY = 20;
-	CNFGDrawText("Selected:",7);CNFGPenX+=190;
+	CNFGPenX = (9*3+1)*textSize;
+	CNFGPenY = textSize;
+	CNFGDrawText("Selected:",textSize);CNFGPenX+=(9*3+1)*textSize;
 	for (int i=0;i<sizeSelectedCards;i++){
-		sprintf(debugText,"%2i",selectedCards[i]);
-		CNFGDrawText(debugText,7);CNFGPenX+=55;
-	}CNFGPenY=70;
-	//deck
-	CNFGPenX = 0.6666*screenx;
-	CNFGDrawText("Cards on Table",7);CNFGPenY+=40;
-	for (int i=0;i<g.sizeCards;i+=3){
-		sprintf(debugText," %2hhu %2hhu %2hhu",g.cards[i+0],g.cards[i+1],g.cards[i+2]);
-		CNFGDrawText(debugText,10);CNFGPenY+=50;
+		sprintf(debugText,"%02i",selectedCards[i]);
+		CNFGDrawText(debugText,textSize);CNFGPenX+=8*textSize;
 	}
-	//sets
-	CNFGDrawText("Sets on Table",7);CNFGPenY+=40;
+	//visible cards
+	CNFGPenX = (33*3+1)*textSize;
+	CNFGPenY = 7*textSize;
+	CNFGPenY += 6*(textSize - textSize*12/14);
+	CNFGDrawText("Cards on Table",textSize*12/14);CNFGPenY+=6*(textSize*12/14);
+	for (int i=0;i<g.sizeCards;i+=3){
+		sprintf(debugText,"%2hhu %2hhu %2hhu",g.cards[i+0],g.cards[i+1],g.cards[i+2]);
+		CNFGDrawText(debugText,textSize);CNFGPenY+=6*textSize;
+	}
+	//visible sets
+	CNFGPenY += 6*(textSize - textSize*12/14);
+	CNFGDrawText("Sets on Table",textSize*12/14);CNFGPenY+=6*(textSize*12/14);
 	for (int i=0;i<g.sizeSets;i++){
 		if (g.mode == 2)
 			sprintf(debugText,"%2hhu %2hhu %2hhu %2hhu",
 				g.sets[i][0],g.sets[i][1],g.sets[i][2],g.sets[i][3]);
 		else 
-			sprintf(debugText," %2hhu %2hhu %2hhu",
+			sprintf(debugText,"%2hhu %2hhu %2hhu",
 				g.sets[i][0],g.sets[i][1],g.sets[i][2]);
-		CNFGDrawText(debugText,10);CNFGPenY+=50;
+		CNFGDrawText(debugText,textSize);CNFGPenY+=6*textSize;
 	}
+	CNFGSetLineWidth(4);
+}
+void drawMenu(double ThisTime){
+	//need to fit at most 9 chars in every box
+	//char box height: 6*textSize px
+	//char box width: 3*textSize px
+	//char in the upper right of the box
+	//textSize = boxCount*charsPerBox*3
+	short textSize = screenx/(5*3*9);
+	CNFGSetLineWidth((short)((float)screenx*4/1080+0.5) > 1 ? (short)((float)screenx*4/1080+0.5) : 1);
+	char timePassed[12];
+	CNFGColor(UNSELECTED_COLOR);
+	for (int i=0; i<5; i++){
+	if (i-2 == g.mode){
+		CNFGColor(SELECTED_COLOR);
+		CNFGTackRectangle(screenx*0.2*i    +textSize, screeny-cardy*5/6+5,
+		                  screenx*0.2*(i+1)-textSize, screeny-5);
+		CNFGColor(UNSELECTED_COLOR);
+	}
+	else 
+		CNFGTackRectangle(screenx*0.2*i+5, screeny-cardy*5/6+5, screenx*0.2*(i+1)-5, screeny-5);
+	}
+	CNFGColor(TEXT_COLOR);
+	CNFGPenY = screeny - cardy*5/12 - textSize;
+	if (g.sizeSets!=0)
+		sprintf(timePassed,"%lis %i",(long)(ThisTime - g.startTime),g.remainingCards);
+	else
+		sprintf(timePassed,"%.3fs",finishTime-g.startTime);
+	CNFGPenX = textSize*2+screenx*0.2*0;
+	CNFGDrawText(timePassed ,textSize);
+	CNFGPenX = textSize*4+screenx*0.2*1;
+	CNFGDrawText("Restart",textSize);
+	CNFGPenX = textSize*4+screenx*0.2*2;
+	CNFGDrawText("Normal",textSize);
+	CNFGPenX = textSize*4+screenx*0.2*3;
+	CNFGDrawText("Chain",textSize);
+	CNFGPenX = textSize*4+screenx*0.2*4;
+	CNFGDrawText("Ultra",textSize);
+	CNFGSetLineWidth(4);
 }
 void startGame(int mode){
 	g = initGame(mode);
@@ -476,7 +529,6 @@ int main()
 	int linesegs = 0;
 
 	startGame(mode);
-	char timePassed[12];
 	
 	CNFGSetLineWidth(4);
 	CNFGSetupFullscreen( "Test Bench", 0 );
@@ -496,11 +548,6 @@ int main()
 
 	while(1)
 	{
-		int i, pos;
-		float f;
-		iframeno++;
-		RDPoint pto[3];
-
 		CNFGHandleInput();
 
 		if( suspended ) { usleep(50000); continue; }
@@ -510,44 +557,15 @@ int main()
 		CNFGGetDimensions( &screenx, &screeny );
 		cardx = screenx/3; //size of one card
 		cardy = cardx*0.64;
-		if (cardy*6>screeny) cardy = screeny/6;
+		//do all cards fit on screen?
+		if (cardy*((g.sizeCards+2)/3+1)>screeny)
+			cardy = screeny/((g.sizeCards+2)/3+1);
 
 		CNFGBGColor = BACKGROUND_COLOR;
 	
-		if (mode == -1) debugScreen();
+		if (mode == -1) drawDebugScreen();
 		else drawCards();
-		
-		//bottom row
-		//CNFGSetLineWidth(4);
-		CNFGPenX = 10;
-		CNFGColor(UNSELECTED_COLOR);
-		for (int i=0; i<5; i++){
-		if (i-2 == g.mode){
-			CNFGColor(SELECTED_COLOR);
-			CNFGTackRectangle(screenx*0.2*i+5, screeny-120, screenx*0.2*(i+1)-5, screeny-5);
-			CNFGColor(UNSELECTED_COLOR);
-		}
-		else 
-			CNFGTackRectangle(screenx*0.2*i+5, screeny-120, screenx*0.2*(i+1)-5, screeny-5);
-		}
-		CNFGColor(TEXT_COLOR);
-		CNFGPenY = screeny - 75;
-		CNFGPenX = 10+screenx*0.2*0;
-		if (g.sizeSets!=0)
-			sprintf(timePassed,"%lis %i",(long)(ThisTime - g.startTime),g.remainingCards);
-		else
-			sprintf(timePassed,"%.3fs",finishTime-g.startTime);
-		CNFGDrawText( timePassed ,8);
-		CNFGPenX = 20+screenx*0.2*1;
-		CNFGDrawText("Restart",8);
-		CNFGPenX = 20+screenx*0.2*2;
-		CNFGDrawText("Normal",8);
-		CNFGPenX = 20+screenx*0.2*3;
-		CNFGDrawText("Chain",8);
-		CNFGPenX = 20+screenx*0.2*4;
-		CNFGDrawText("Ultra",8);
-		//CNFGSetLineWidth(4);
-
+		drawMenu(ThisTime);
 
 		//log and FPS
 		CNFGPenY = screeny - 1000;
@@ -562,8 +580,6 @@ int main()
 		{
 			printf( "FPS: %d\n", frames );
 			printf("%d %d \n",lastbuttonx, lastbuttony);
-			printf("%s \n",timePassed);
-			//CNFGSetLineWidth(1)
 			printf("%f \n",wgl_last_width_over_2);
 			frames = 0;
 			linesegs = 0;

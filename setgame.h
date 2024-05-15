@@ -11,8 +11,7 @@ struct Game{
 	int sizeSetsFound;
 	int remainingCards;//cards remaining in Deck
 	unsigned char deck[81];//all cards, shuffled
-	unsigned char cards[27];//cards on table, including previous set in chain
-                            //swf keybinds say its below 27
+	unsigned char cards[45];//cards on table, including previous set in chain
 	bool boolCards[81];     //cards on table
 	unsigned char setsFound[40][4];//sets Found by player
 	double startTime;
