@@ -41,6 +41,7 @@ unsigned long iframeno = 0;
 //#define BACKGROUND_COLOR 0x090909ff //dark
 //#define TEXT_COLOR 	   0xffffffff //dark
 #define FILLING_DENSITY 12 //lower if dark?
+#define FILE_FORMAT_VERSION 1
 
 int selectedCards[4];
 int sizeSelectedCards;
@@ -148,13 +149,6 @@ void HandleButton( int x, int y, int button, int bDown )
 		}
 		//debug screen
 		if (but == 0){
-			FILE* file = fopen("/data/data/org.mathmil.swc/files/games.bin","wb+");
-			if (file != NULL)
-			{
-				writeGameToFile(g,file);
-				fflush(file);
-				fclose(file);
-			}
 			if (mode != -1)
 				mode = -1;
 			else
@@ -215,7 +209,7 @@ void HandleButton( int x, int y, int button, int bDown )
 		}
 	}
 	if (g.sizeSets == 0){
-	finishGame();
+		finishGame();
 	}
 	for (int i=0;i<4;i++){selectedCards[i]=-1;}
 	sizeSelectedCards = 0;
@@ -237,25 +231,11 @@ void HandleDestroy()
 
 void HandleSuspend()
 {
-    FILE* file = fopen("/data/data/org.mathmil.swc/files/suspend.txt","ab+");
-    if (file != NULL)
-    {
-        fputs("I just got suspended!\n", file);
-		fflush(file);
-        fclose(file);
-    }
 	suspended = 1;
 }
 
 void HandleResume()
 {
-    FILE* file = fopen("/data/data/org.mathmil.swc/files/resume.txt","ab+");
-    if (file != NULL)
-    {
-        fputs("I just resumed!\n", file);
-		fflush(file);
-        fclose(file);
-    }
 	suspended = 0;
 }
 
@@ -514,11 +494,39 @@ void startGame(int mode){
 	finishTime = -1;
 }
 void finishGame(){
+	finishTime = OGGetAbsoluteTime();
 	for (int i=0;i<4;i++){
 		selectedCards[i]=-1;
-	}	
-	finishTime = OGGetAbsoluteTime();
-	//TODO save game in storage iff at least one set was found
+	}
+	if (g.sizeSetsFound > 0){
+		//save game
+		FILE* file = fopen("/data/data/org.mathmil.swc/files/games.bin","ab+");
+		if (!file){
+			perror("Error opening file\n");
+			return;
+		}
+		rewind(file);
+		unsigned char magicNum[7] = "3141592";
+		fread(magicNum, 1, 7, file);
+		if(!(magicNum[0] == 's'&&
+		     magicNum[1] == 'e'&&
+		     magicNum[2] == 't'&&
+		     magicNum[3] == 'w'&&
+		     magicNum[4] == 'c'&&
+		     magicNum[5] == 0x00 &&
+		     magicNum[6] == FILE_FORMAT_VERSION)){
+			fclose(file);
+			char temp[60];
+			sprintf(temp,"/data/data/org.mathmil.swc/files/%igames.bin",(int)finishTime);
+			rename("/data/data/org.mathmil.swc/files/games.bin", temp);
+			FILE* file = fopen("/data/data/org.mathmil.swc/files/games.bin","wb");
+			fwrite("setwc\0",1,6,file);
+			fputc(FILE_FORMAT_VERSION, file);
+		}
+		fseek(file, 0, SEEK_END);
+		writeGameToFile(g,file);
+		fclose(file);
+	}
 }
 int main()
 {
@@ -532,17 +540,6 @@ int main()
 	
 	CNFGSetLineWidth(4);
 	CNFGSetupFullscreen( "Test Bench", 0 );
-
-	const char * assettext = "Not Found";
-	AAsset * file = AAssetManager_open( gapp->activity->assetManager, "test.txt", AASSET_MODE_BUFFER );
-	if( file )
-	{
-		size_t fileLength = AAsset_getLength(file);
-		char * temp = malloc( fileLength + 1);
-		memcpy( temp, AAsset_getBuffer( file ), fileLength );
-		temp[fileLength] = 0;
-		assettext = temp;
-	}
 
 //	AndroidRequestAppPermissions("WRITE_EXTERNAL_STORAGE");
 
