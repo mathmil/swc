@@ -500,32 +500,47 @@ void finishGame(){
 	}
 	if (g.sizeSetsFound > 0){
 		//save game
-		FILE* file = fopen("/data/data/org.mathmil.swc/files/games.bin","ab+");
+		bool correctMagicBytes = true;
+		FILE* file = fopen("/data/data/org.mathmil.swc/files/games.bin","rb");
 		if (!file){
-			perror("Error opening file\n");
-			return;
-		}
-		rewind(file);
-		unsigned char magicNum[7] = "3141592";
-		fread(magicNum, 1, 7, file);
-		if(!(magicNum[0] == 's'&&
-		     magicNum[1] == 'e'&&
-		     magicNum[2] == 't'&&
-		     magicNum[3] == 'w'&&
-		     magicNum[4] == 'c'&&
-		     magicNum[5] == 0x00 &&
-		     magicNum[6] == FILE_FORMAT_VERSION)){
+			FILE* file = fopen("/data/data/org.mathmil.swc/files/games.bin","wb");
+			if (!file){
+				perror("Error creating File");
+				return;
+			}
 			fclose(file);
-			char temp[60];
-			sprintf(temp,"/data/data/org.mathmil.swc/files/%igames.bin",(int)finishTime);
-			rename("/data/data/org.mathmil.swc/files/games.bin", temp);
+			correctMagicBytes = false;
+		} else {
+			unsigned char magicNum[7] = "3141592";
+			fread(magicNum, 1, 7, file);
+			if(!(magicNum[0] == 's'&&
+			     magicNum[1] == 'e'&&
+			     magicNum[2] == 't'&&
+			     magicNum[3] == 'w'&&
+			     magicNum[4] == 'c'&&
+			     magicNum[5] == 0x00 &&
+			     magicNum[6] == FILE_FORMAT_VERSION)){
+				correctMagicBytes = false;
+				fclose(file);
+				char temp[60];
+				sprintf(temp,"/data/data/org.mathmil.swc/files/%igames.bin",(int)finishTime);
+				rename("/data/data/org.mathmil.swc/files/games.bin", temp);
+			}
+		}
+		if (!correctMagicBytes){
 			FILE* file = fopen("/data/data/org.mathmil.swc/files/games.bin","wb");
 			fwrite("setwc\0",1,6,file);
 			fputc(FILE_FORMAT_VERSION, file);
+			fclose(file);
 		}
-		fseek(file, 0, SEEK_END);
-		writeGameToFile(g,file);
-		fclose(file);
+		FILE* f = fopen("/data/data/org.mathmil.swc/files/games.bin","rb+");
+		if (!f){
+			perror("Error writing the File");
+			return;
+		}
+		fseek(f, 0, SEEK_END);
+		writeGameToFile(g,f);
+		fclose(f);
 	}
 }
 int main()

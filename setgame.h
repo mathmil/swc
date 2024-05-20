@@ -60,13 +60,13 @@ void writeGameToFile(struct Game g, FILE* file){
 		fputc(128+g.setsFound[g.sizeSetsFound-1][cardsPerSet-1],file);
 	}
 	//times in millis since last set in LEB128
-	unsigned long timeSet;
+	unsigned long long timeSet;
+	unsigned long long totalTimeSets = 0;
 	unsigned char byte;
 	for(int i=0;i<g.sizeSetsFound;i++){
-		if (i>0)
-			timeSet = (long)(1000*(g.timeFound[i]-g.timeFound[i-1]));
-		else
-			timeSet = (long)(1000*(g.timeFound[i]-g.startTime));
+		timeSet = (long long)(1000*(g.timeFound[i]-g.startTime)-totalTimeSets);
+		printf("%llu %llu secretValue \n",totalTimeSets, timeSet);
+		totalTimeSets += timeSet;
 		do {
 			byte = timeSet%128;
 			timeSet >>=7;
