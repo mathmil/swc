@@ -285,8 +285,10 @@ struct Game initGame(int mode){
 		g.boolCards[g.deck[i]]=true;
 	}
 	findSets(&g);
-	if (g.sizeSets==0)
+	while (g.sizeSets==0){
 		addCards(&g);
+		findSets(&g);
+	}
 	return g;
 }
 void testBoolCards(struct  Game *g){
