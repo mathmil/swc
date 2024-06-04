@@ -3,42 +3,31 @@
 #include <time.h>
 #include <stdbool.h>
 #include <math.h>
-//card: unsigned char c; 0<=card<=80; farbe, form, fuellung, anzahl; color, shape, filling, number
+//card: uint8_t c; 0<=card<=80; farbe, form, fuellung, anzahl; color, shape, filling, number
+enum gamemode {normal = 0, chain = 1, ultra = 2};
 struct Game{
-	int mode;//mode 0 = normal, 1=chain, 2=ultra
+	enum gamemode mode;
 	int sizeCards;
 	int sizeSets;
 	int sizeSetsFound;
 	int remainingCards;//cards remaining in Deck
-	unsigned char deck[81];//all cards, shuffled
-	unsigned char cards[45];//cards on table, including previous set in chain
+	uint8_t deck[81];//all cards, shuffled
+	uint8_t cards[45];//cards on table, including previous set in chain
 	bool boolCards[81];     //cards on table
-	unsigned char setsFound[40][4];//sets Found by player
+	uint8_t setsFound[40][4];//sets Found by player
 	double startTime;
 	double timeFound[40];
-	//sets on table, cards are sorted
-	unsigned char sets[200][4];
+	//sets on table
+	uint8_t sets[200][4];
 };
-unsigned char conjugateCard(unsigned char a, unsigned char b);//no side effects
-void generateDeck(unsigned char * deck);//modifies deck; shuffles
+uint8_t conjugateCard(uint8_t a, uint8_t b);//no side effects
+void generateDeck(uint8_t * deck);//modifies deck; shuffles
 void findSets(struct Game *g);//modifies sets
 void addCards(struct Game *g);//modifies cards, indirectly sets
-void handleFound(struct Game *g, unsigned char set[4]);//modifies everything
-struct Game initGame(int mode);
+void handleFound(struct Game *g, uint8_t set[4]);//modifies everything
+struct Game initGame(enum gamemode mode);
 void testBoolCards(struct  Game *g);
-void simulateGame(int mode); //needs global variables
-void simulateGame(int mode){
-	struct Game g = initGame(mode);
-	int maxBoard=12;
-	while(g.sizeSets>0 && g.sizeSetsFound < 28){
-//	printf("------------------------------ \n");
-//	boards[(g.sizeCards/3)]++;
-	handleFound(&g,g.sets[0]);//((rand())%g.sizeSets)
-	if (g.sizeCards>maxBoard){maxBoard=g.sizeCards;}
-	}
-//	games[maxBoard/3]++;
-//	remainingCards[g.sizeCards/3]++;
-}
+bool isSet(uint8_t *cards, enum gamemode mode);
 void writeGameToFile(struct Game g, FILE* file){
 	int length = 0;
 	fseek(file,2, SEEK_CUR);
@@ -50,7 +39,7 @@ void writeGameToFile(struct Game g, FILE* file){
 	}
 	//cards
 	if (g.sizeSetsFound>0){
-		const int cardsPerSet = (g.mode==2)?4:2;
+		const int cardsPerSet = (g.mode==ultra)?4:2;
 		for(int i=0;i<g.sizeSetsFound;i++){
 			for(int j=0;j<cardsPerSet;j++){
 				fputc(g.setsFound[i][j],file);length++;
@@ -82,9 +71,9 @@ void writeGameToFile(struct Game g, FILE* file){
 	fseek(file,length,SEEK_CUR);
 	return;
 }
-unsigned char conjugateCard(unsigned char a, unsigned char b){
+uint8_t conjugateCard(uint8_t a, uint8_t b){
 	//TODO replace with precalculated array[1080]
-	unsigned char c = 0;
+	uint8_t c = 0;
 	for (int i=1;i<81;i*=3){
 		c+=(81-(a%3+b%3))%3*i;
 		a=a/3;
@@ -92,9 +81,28 @@ unsigned char conjugateCard(unsigned char a, unsigned char b){
 	}
 	return c;
 }
-void generateDeck(unsigned char * deck){
-	for (unsigned char i=0;i<81;i++){
-		unsigned char j = rand()%(i+1);
+bool isSet(uint8_t *cards, enum gamemode mode){
+	switch(mode){
+	case ultra:
+		if (conjugateCard(cards[0],cards[1]) ==
+		    conjugateCard(cards[2],cards[3]) ||
+		    conjugateCard(cards[0],cards[2]) ==
+		    conjugateCard(cards[1],cards[3]) ||
+		    conjugateCard(cards[0],cards[3]) ==
+		    conjugateCard(cards[1],cards[2]))
+			return true;
+		return false;
+		break;
+	default:
+		if (cards[2] == conjugateCard(cards[0],cards[1]))
+			return true;
+		return false;
+		break;
+	}
+}
+void generateDeck(uint8_t * deck){
+	for (uint8_t i=0;i<81;i++){
+		uint8_t j = rand()%(i+1);
 		*(deck+i) = i;
 		int temp=*(deck+j);
 		*(deck+j)=i;
@@ -123,12 +131,12 @@ void findSets(struct Game *g){
 	}
 //	testBoolCards(g);	
 	(*g).sizeSets=0;
-	unsigned char a;	//currently all 6 permutations checked, only sorted added
-	unsigned char b;	//could improve speed at least 2x
-	unsigned char c;
-	unsigned char d;
+	uint8_t a;	//currently all 6 permutations checked, only sorted added
+	uint8_t b;	//could improve speed at least 2x
+	uint8_t c;
+	uint8_t d;
 	switch ((*g).mode){
-	case 0:{
+	case normal:{
 	normal:
 	for(int i = 0; i<(*g).sizeCards;i++){
 	for(int j = 0; j<(*g).sizeCards;j++){
@@ -146,7 +154,7 @@ void findSets(struct Game *g){
 	}
 	break;
 	}
-	case 1:{
+	case chain:{
 	if((*g).sizeSetsFound==0){goto normal;}//first Chain Set
 	for(int i = 0; i<3;i++){
 	for(int j = 3; j<(*g).sizeCards;j++){
@@ -165,10 +173,10 @@ void findSets(struct Game *g){
 	}
 	break;
 	}
-	case 2:{//ultra
+	case ultra:{
 	//TODO cache conjugates, "hashmap" for conjugates
 	int i1; int i2; int j1; int j2;
-	unsigned char conjugates[78];
+	uint8_t conjugates[78];
 	int pairCount = ((*g).sizeCards)*((*g).sizeCards+1)/2;
 	for(int i=0;i<pairCount;i++){
 		i1 = (int)((sqrt(8*i+1)-1)/2);//index first card
@@ -204,18 +212,17 @@ void findSets(struct Game *g){
 	}
 	}
 }
-void handleFound(struct Game *g, unsigned char set[4]){
+void handleFound(struct Game *g, uint8_t set[4]){
 	//TODO fix boolCards
 	(*g).timeFound[(*g).sizeSetsFound] = OGGetAbsoluteTime();
 	for(int i=0;i<4;i++) (*g).setsFound[(*g).sizeSetsFound][i]=set[i];
 	int cardsPerSet;
 	int defaultSizeCards=12;
 	switch ((*g).mode){
-		case 0:cardsPerSet=3;break;
-		case 1:cardsPerSet=3;break;
-		case 2:cardsPerSet=4;break;
+		case ultra:cardsPerSet=4;break;
+		default:cardsPerSet=3;break;
 	}
-	if ((*g).mode==1){
+	if ((*g).mode==chain){
 		defaultSizeCards=15;
 		if ((*g).sizeSetsFound == 0){
 			//move cards
@@ -234,7 +241,7 @@ void handleFound(struct Game *g, unsigned char set[4]){
 	for (int j=0;j<cardsPerSet;j++){
 	if ((*g).remainingCards>0 && (*g).sizeCards <= defaultSizeCards){
 		//replace set
-		for(int i=(*g).mode!=1?0:3;i<(*g).sizeCards;i++){
+		for(int i=(*g).mode!=chain?0:3;i<(*g).sizeCards;i++){
 		if ((*g).cards[i]==set[j]){
 		(*g).boolCards[set[j]]=false;
 		(*g).cards[i]=(*g).deck[81-(*g).remainingCards];
@@ -245,7 +252,7 @@ void handleFound(struct Game *g, unsigned char set[4]){
 		}
 	} else  {
 		//remove set
-		for(int i=((*g).mode!=1)?0:3;i<(*g).sizeCards;i++){
+		for(int i=((*g).mode!=chain)?0:3;i<(*g).sizeCards;i++){
 		if ((*g).cards[i]==set[j]){
 		(*g).boolCards[(*g).cards[i]]=false;
 		//move cards
@@ -258,7 +265,7 @@ void handleFound(struct Game *g, unsigned char set[4]){
 		}
 	}
 	}
-	if ((*g).mode == 1)
+	if ((*g).mode == chain)
 		for (int i=0;i<3;i++)
 			(*g).boolCards[set[i]]=true;
 	(*g).sizeSetsFound++;
@@ -266,7 +273,7 @@ void handleFound(struct Game *g, unsigned char set[4]){
 	if ((*g).sizeSets==0)
 		addCards(g);
 }
-struct Game initGame(int mode){
+struct Game initGame(enum gamemode mode){
 	struct Game g;
 	g.mode=mode;
 	g.sizeCards=12;

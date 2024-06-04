@@ -43,11 +43,11 @@ unsigned long iframeno = 0;
 #define FILLING_DENSITY 12 //lower if dark?
 #define FILE_FORMAT_VERSION 1
 
-int selectedCards[4];
-int sizeSelectedCards;
+int selectedCardsPos[4];
+int sizeSelectedCardsPos;
 struct Game g;
 short cardx, cardy;
-int mode = 0;//current gamemode  normal, chain, ultra; -1 menu; -1 menu
+int mode = 0;//current gamemode  normal, chain, ultra; -1 menu
 double finishTime; //-1 if game didn't finish yet, also used to check if game finished yet
 
 int genlinelen = 0;
@@ -58,7 +58,7 @@ int firstnewline = -1;
 
 
 
-void startGame(int mode);
+void startGame(enum gamemode mode);
 void finishGame();
 void example_log_function( int readSize, char * buf )
 {
@@ -160,59 +160,40 @@ void HandleButton( int x, int y, int button, int bDown )
 		//no cards there to select
 		return;
 	//select card
-	int cardsPerSet = (mode != 2) ? 3 : 4;
-	if (mode == 1 && g.sizeSetsFound>0 && y>(cardy+20)) y-=40;
+	int cardsPerSet = (mode != ultra) ? 3 : 4;
+	if (mode == chain && g.sizeSetsFound>0 && y>(cardy+20)) y-=40;
 	int clickedCard =  x/cardx + 3*(y/cardy);
 	if (clickedCard >= g.sizeCards) return;
 	for (int i=0;i<4;i++) {
-		if (clickedCard == selectedCards[i]){
+		if (clickedCard == selectedCardsPos[i]){
 			//deselect card
-			for (int j=i;j<3;j++){selectedCards[j]=selectedCards[j+1];}
-			selectedCards[3] = -1;
-			sizeSelectedCards--;
+			for (int j=i;j<3;j++)
+				selectedCardsPos[j]=selectedCardsPos[j+1];
+			selectedCardsPos[3] = -1;
+			sizeSelectedCardsPos--;
 			return;
 		}
 	}
-	//select with round-robin
-	//for (int i=cardsPerSet-1;i>0;i--)selectedCards[i]=selectedCards[i-1];
-	//selectedCards[0] = clickedCard;
-	//if (selectedCards[cardsPerSet-1]==-1) return;
-	selectedCards[sizeSelectedCards] = clickedCard;
-	sizeSelectedCards++;
-	if (sizeSelectedCards < cardsPerSet) return;
+	selectedCardsPos[sizeSelectedCardsPos] = clickedCard;
+	sizeSelectedCardsPos++;
+	if (g.mode==chain && g.sizeSetsFound>0 && clickedCard<3){
+		for (int i=3;i>0;i--)
+			selectedCardsPos[i]=selectedCardsPos[i-1];
+		selectedCardsPos[0] = clickedCard;
+	}
 	//check if set was found
-	//TODO just calculate whether the selected Cards are a set,
-	//don't look it up in the list
+	if (sizeSelectedCardsPos < cardsPerSet) return;
 	unsigned char cards[4];
 	for (int i=0;i<cardsPerSet;i++){
-		cards[i] = g.cards[selectedCards[i]];
-		//sort
-		for (int j=i;j>0;j--){
-			if (cards[j]<cards[j-1]){
-			cards[j]   = cards[j]+cards[j-1];
-			cards[j-1] = cards[j]-cards[j-1];
-			cards[j]   = cards[j]-cards[j-1];
-			}
-		}
+		cards[i] = g.cards[selectedCardsPos[i]];
 	}
-	for (int i=0;i<g.sizeSets;i++){
-		if (mode != 2){
-		if (cards[0]==g.sets[i][0] && cards[1]==g.sets[i][1] &&
-			cards[2]==g.sets[i][2] && cards[2]==g.sets[i][2]){
-			for(int k=0;k<4;k++) selectedCards[k]=-1;
-			handleFound(&g,g.sets[i]);}
-		}
-		else {
-		if (cards[0]==g.sets[i][0] && cards[1]==g.sets[i][1] && cards[2]==g.sets[i][2]){
-			for(int k=0;k<4;k++) selectedCards[k]=-1;
-			handleFound(&g,g.sets[i]);}
-		}
+	if (isSet(cards, g.mode) && (!(g.mode==chain && g.sizeSetsFound>0) || selectedCardsPos[0]<3)){
+		handleFound(&g, cards);
+		if (g.sizeSets == 0)
+			finishGame();
 	}
-	if (g.sizeSets == 0){
-		finishGame();
-	}
-	for (int i=0;i<4;i++){selectedCards[i]=-1;}
-	sizeSelectedCards = 0;
+	for (int i=0;i<4;i++){selectedCardsPos[i]=-1;}
+	sizeSelectedCardsPos = 0;
 }
 
 void HandleMotion( int x, int y, int mask )
@@ -359,7 +340,7 @@ void drawCard(short xPos, short yPos, unsigned char c){
 void drawCards(){
 	for (int i=0; i<g.sizeCards; i++){
 		int oofsie = 0;
-		if (g.mode == 1 && i>2 && g.sizeSetsFound>0){
+		if (g.mode == chain && i>2 && g.sizeSetsFound>0){
 			oofsie = cardy/6;
 			CNFGColor(TEXT_COLOR);
 			CNFGTackSegment(0, oofsie/2+cardy,screenx,oofsie/2+cardy);
@@ -369,7 +350,7 @@ void drawCards(){
 		else
 			CNFGColor(UNSELECTED_COLOR);
 		for (int j=0; j<4;j++){
-		if (i==selectedCards[j]) CNFGColor(SELECTED_COLOR);}
+		if (i==selectedCardsPos[j]) CNFGColor(SELECTED_COLOR);}
 		drawCard(i%3*cardx, i/3*cardy+oofsie, g.cards[i]);
 	}
 }
@@ -408,7 +389,7 @@ void drawDebugScreen(){
 	CNFGPenX = (9*3+1)*textSize;
 	CNFGDrawText("Sets found  Time    No",textSize);CNFGPenY = (2*6+1)*textSize;
 	for (int i=0;i<g.sizeSetsFound;i++){
-		if (g.mode == 2)
+		if (g.mode == ultra)
 		sprintf(debugText,"%2hhu %2hhu %2hhu %2hhu %07.3f %02i"
 			,g.setsFound[i][0],g.setsFound[i][1],g.setsFound[i][2],g.setsFound[i][3]
 			,g.timeFound[i]-g.startTime, i+1);
@@ -422,8 +403,8 @@ void drawDebugScreen(){
 	CNFGPenX = (9*3+1)*textSize;
 	CNFGPenY = textSize;
 	CNFGDrawText("Selected:",textSize);CNFGPenX+=(9*3+1)*textSize;
-	for (int i=0;i<sizeSelectedCards;i++){
-		sprintf(debugText,"%02i",selectedCards[i]);
+	for (int i=0;i<sizeSelectedCardsPos;i++){
+		sprintf(debugText,"%02i",selectedCardsPos[i]);
 		CNFGDrawText(debugText,textSize);CNFGPenX+=8*textSize;
 	}
 	//visible cards
@@ -439,7 +420,7 @@ void drawDebugScreen(){
 	CNFGPenY += 6*(textSize - textSize*12/14);
 	CNFGDrawText("Sets on Table",textSize*12/14);CNFGPenY+=6*(textSize*12/14);
 	for (int i=0;i<g.sizeSets;i++){
-		if (g.mode == 2)
+		if (g.mode == ultra)
 			sprintf(debugText,"%2hhu %2hhu %2hhu %2hhu",
 				g.sets[i][0],g.sets[i][1],g.sets[i][2],g.sets[i][3]);
 		else 
@@ -487,16 +468,16 @@ void drawMenu(double ThisTime){
 	CNFGDrawText("Ultra",textSize);
 	CNFGSetLineWidth(4);
 }
-void startGame(int mode){
+void startGame(enum gamemode mode){
 	g = initGame(mode);
-	sizeSelectedCards = 0;
-	for(int k=0;k<4;k++) selectedCards[k]=-1;
+	sizeSelectedCardsPos = 0;
+	for(int k=0;k<4;k++) selectedCardsPos[k]=-1;
 	finishTime = -1;
 }
 void finishGame(){
 	finishTime = OGGetAbsoluteTime();
 	for (int i=0;i<4;i++){
-		selectedCards[i]=-1;
+		selectedCardsPos[i]=-1;
 	}
 	if (g.sizeSetsFound > 0){
 		//save game
