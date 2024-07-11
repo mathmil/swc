@@ -137,14 +137,18 @@ void HandleButton( int x, int y, int button, int bDown )
 		int but = (int)((float)x/screenx*5);
 		if (but > 1 && but-2!=g.mode){
 			//change mode
-			finishGame();
+			if (finishTime < 0){
+				finishGame();
+			}
 			mode = but-2;
 			startGame(mode);
 			return;
 		}
 		if (but == 1){
 			//restart
-			finishGame();
+			if (finishTime < 0){
+				finishGame();
+			}
 			startGame(g.mode);
 		}
 		//debug screen
