@@ -21,7 +21,7 @@ struct Game{
 	uint8_t sets[200][4];
 };
 uint8_t conjugateCard(uint8_t a, uint8_t b);//no side effects
-void generateDeck(uint8_t * deck);//modifies deck; shuffles
+void generateDeck(uint8_t * deck, int32_t seed);//modifies deck; shuffles
 void findSets(struct Game *g);//modifies sets
 void addCards(struct Game *g);//modifies cards, indirectly sets
 void handleFound(struct Game *g, uint8_t set[4]);//modifies everything
@@ -100,9 +100,29 @@ bool isSet(uint8_t *cards, enum gamemode mode){
 		break;
 	}
 }
-void generateDeck(uint8_t * deck){
-	for (uint8_t i=0;i<81;i++){
-		uint8_t j = rand()%(i+1);
+void generateDeck(uint8_t * deck, int32_t seed){
+	//glibc PRNG, hardcoded because consist random numbers are required
+	int32_t r[425];
+	size_t i;
+	r[0] = seed;
+	for (i=1; i<31; i++) {
+	  r[i] = (16807LL * r[i-1]) % 2147483647;
+	  if (r[i] < 0) {
+	    r[i] += 2147483647;
+	  }
+	}
+	for (i=31; i<34; i++) {
+	  r[i] = r[i-31];
+	}
+	for (i=34; i<344; i++) {
+	  r[i] = r[i-31] + r[i-3];
+	}
+	for (i=344; i<425; i++) {
+	  r[i] = r[i-31] + r[i-3];
+	}
+	//Fisher-Yates shuffle
+	for (i=0;i<81;i++){
+		int j = (((unsigned int)r[i+344]) >> 1)%(i+1);
 		*(deck+i) = i;
 		int temp=*(deck+j);
 		*(deck+j)=i;
@@ -281,11 +301,7 @@ struct Game initGame(enum gamemode mode){
 	g.sizeSets=0;
 	g.remainingCards=69;
 	g.startTime = OGGetAbsoluteTime();
-	srand((long)(g.startTime));
-	//srand(1710620931);
-	//srand(1710740959);//2 6 13; ecken; seitenmitten; fixed by 60dc847 (v0.1.5)
-	//srand(1710763402);//12 10 8; 10 8 5; fixed by 60dc847 (v0.1.5)
-	generateDeck(g.deck);
+	generateDeck(g.deck, (int32_t)g.startTime);
 	for(int i=0;i<81;i++) g.boolCards[i]=false;
 	for (int i=0;i<12;i++){
 		g.cards[i] = g.deck[i];
