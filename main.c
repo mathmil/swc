@@ -191,7 +191,7 @@ void HandleButton( int x, int y, int button, int bDown )
 	for (int i=0;i<cardsPerSet;i++){
 		cards[i] = g.cards[selectedCardsPos[i]];
 	}
-	if (isSet(cards, g.mode) && (!(g.mode==chain && g.sizeSetsFound>0) || selectedCardsPos[0]<3)){
+	if (isSet(cards, g.mode) && (!(g.mode==chain && g.sizeSetsFound>0) || (selectedCardsPos[0]<3 && selectedCardsPos[1] >= 3))) {
 		handleFound(&g, cards);
 		if (g.sizeSets == 0)
 			finishGame();
@@ -586,4 +586,3 @@ int main( int argc, char ** argv )
 
 	return(0);
 }
-
