@@ -528,7 +528,7 @@ void finishGame(){
 		fclose(f);
 	}
 }
-int main()
+int main( int argc, char ** argv )
 {
 	int i, x, y;
 	double ThisTime = OGGetAbsoluteTime();
