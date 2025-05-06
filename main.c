@@ -210,7 +210,7 @@ void HandleMotion( int x, int y, int mask )
 extern struct android_app * gapp;
 
 
-void HandleDestroy()
+int HandleDestroy()
 {
 }
 
